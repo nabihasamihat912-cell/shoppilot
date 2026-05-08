@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>ShopPilot Dashboard</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; color: #333; }
+    header { background: #5c6bc0; color: white; padding: 20px 40px; font-size: 24px; font-weight: bold; }
+    .container { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    .card { background: white; border-radius: 12px; padding: 24px; margin-bottom: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    h2 { margin-bottom: 16px; color: #5c6bc0; }
+    input, textarea { width: 100%; padding: 10px; margin-bottom: 12px; border: 1px solid #ddd; border-radius: 8px; font-size: 14px; }
+    button { background: #5c6bc0; color: white; border: none; padding: 10px 24px; border-radius: 8px; cursor: pointer; font-size: 14px; }
+    button:hover { background: #3f51b5; }
+    .result { margin-top: 16px; background: #f0f4ff; padding: 16px; border-radius: 8px; font-size: 14px; white-space: pre-wrap; }
+  </style>
+</head>
+<body>
+  <header>🚀 ShopPilot Dashboard</header>
+  <div class="container">
+
+    <div class="card">
+      <h2>💬 Customer Support Chat</h2>
+      <input type="text" id="chatMessage" placeholder="Enter customer question..." />
+      <button onclick="sendChat()">Ask AI</button>
+      <div class="result" id="chatResult"></div>
+    </div>
+
+    <div class="card">
+      <h2>📝 Product Description Generator</h2>
+      <input type="text" id="productName" placeholder="Product name..." />
+      <input type="text" id="productDetails" placeholder="Details (optional)..." />
+      <button onclick="generateDescription()">Generate</button>
+      <div class="result" id="descResult"></div>
+    </div>
+
+    <div class="card">
+      <h2>📱 Social Media Caption</h2>
+      <input type="text" id="captionProduct" placeholder="Product name..." />
+      <input type="text" id="captionPlatform" placeholder="Platform (Instagram, Twitter...)" />
+      <button onclick="generateCaption()">Generate</button>
+      <div class="result" id="captionResult"></div>
+    </div>
+
+    <div class="card">
+      <h2>📊 Weekly AI Report</h2>
+      <input type="text" id="storeName" placeholder="Store name..." />
+      <input type="text" id="totalOrders" placeholder="Total orders..." />
+      <input type="text" id="totalRevenue" placeholder="Total revenue ($)..." />
+      <input type="text" id="topProduct" placeholder="Top product..." />
+      <button onclick="generateReport()">Generate Report</button>
+      <div class="result" id="reportResult"></div>
+    </div>
+
+  </div>
+  <script>
+    async function sendChat() {
+      const message = document.getElementById('chatMessage').value;
+      const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
+      const data = await res.json();
+      document.getElementById('chatResult').innerText = data.reply;
+    }
+    async function generateDescription() {
+      const productName = document.getElementById('productName').value;
+      const details = document.getElementById('productDetails').value;
+      const res = await fetch('/generate-description', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, details }) });
+      const data = await res.json();
+      document.getElementById('descResult').innerText = data.description;
+    }
+    async function generateCaption() {
+      const productName = document.getElementById('captionProduct').value;
+      const platform = document.getElementById('captionPlatform').value;
+      const res = await fetch('/generate-caption', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, platform }) });
+      const data = await res.json();
+      document.getElementById('captionResult').innerText = data.caption;
+    }
+    async function generateReport() {
+      const storeName = document.getElementById('storeName').value;
+      const totalOrders = document.getElementById('totalOrders').value;
+      const totalRevenue = document.getElementById('totalRevenue').value;
+      const topProduct = document.getElementById('topProduct').value;
+      const res = await fetch('/weekly-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName, totalOrders, totalRevenue, topProduct }) });
+      const data = await res.json();
+      document.getElementById('reportResult').innerText = data.report;
+    }
+  </script>
+</body>
+</html>

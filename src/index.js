@@ -98,9 +98,7 @@ app.post('/weekly-report', async (req, res) => {
 
   res.json({ report: response.choices[0].message.content });
 });
-app.get('/', (req, res) => {
-  res.send('ShopPilot is running! 🚀');
-});
+app.use(express.static('src/public'));
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
