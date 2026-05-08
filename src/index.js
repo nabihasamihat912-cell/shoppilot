@@ -84,6 +84,20 @@ app.post('/generate-caption', async (req, res) => {
 
   res.json({ caption: response.choices[0].message.content });
 });
+app.post('/weekly-report', async (req, res) => {
+  const { storeName, totalOrders, totalRevenue, topProduct } = req.body;
+  if (!storeName) return res.status(400).json({ error: 'Missing storeName' });
+
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: 'You are an ecommerce analyst. Write a concise weekly performance report with insights and recommendations.' },
+      { role: 'user', content: `Write a weekly report for ${storeName}. Orders: ${totalOrders || 0}, Revenue: $${totalRevenue || 0}, Top product: ${topProduct || 'unknown'}` }
+    ]
+  });
+
+  res.json({ report: response.choices[0].message.content });
+});
 app.get('/', (req, res) => {
   res.send('ShopPilot is running! 🚀');
 });
