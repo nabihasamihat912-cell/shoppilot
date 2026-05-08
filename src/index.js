@@ -56,7 +56,20 @@ app.post('/chat', async (req, res) => {
   });
   res.json({ reply: response.choices[0].message.content });
 });
+app.post('/generate-description', async (req, res) => {
+  const { productName, details } = req.body;
+  if (!productName) return res.status(400).json({ error: 'Missing productName' });
 
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    messages: [
+      { role: 'system', content: 'You are an expert ecommerce copywriter. Write compelling, SEO-friendly product descriptions.' },
+      { role: 'user', content: `Write a product description for: ${productName}. Details: ${details || 'none provided'}` }
+    ]
+  });
+
+  res.json({ description: response.choices[0].message.content });
+});
 app.get('/', (req, res) => {
   res.send('ShopPilot is running! 🚀');
 });
