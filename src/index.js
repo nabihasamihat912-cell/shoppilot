@@ -48,7 +48,7 @@ app.post('/chat', async (req, res) => {
   const { message, storeContext } = req.body;
   if (!message) return res.status(400).json({ error: 'Missing message' });
   const response = await groq.chat.completions.create({
-    model: 'llama3-8b-8192',
+    model: 'model: 'llama-3.3-70b-versatile',
     messages: [
       { role: 'system', content: `You are a helpful customer support assistant for a Shopify store. ${storeContext || ''}` },
       { role: 'user', content: message }
