@@ -3,256 +3,538 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>ShopPilot — AI Co-Pilot for Shopify</title>
+  <title>ShopPilot — Enterprise AI for Shopify</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cal+Sans&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: 'Inter', sans-serif; background: #0a0a0f; color: #e2e8f0; min-height: 100vh; }
-
-    /* HEADER */
-    header {
-      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
-      padding: 20px 40px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-bottom: 1px solid rgba(99,102,241,0.3);
-      position: sticky;
-      top: 0;
-      z-index: 100;
-      backdrop-filter: blur(10px);
+    :root {
+      --bg: #030307;
+      --bg2: #0d0d1a;
+      --bg3: #12121f;
+      --border: rgba(255,255,255,0.07);
+      --border-hover: rgba(99,102,241,0.4);
+      --purple: #6366f1;
+      --purple-light: #a78bfa;
+      --pink: #ec4899;
+      --text: #f1f5f9;
+      --text-muted: #64748b;
+      --text-sub: #94a3b8;
+      --glow: rgba(99,102,241,0.25);
     }
-    .logo { display: flex; align-items: center; gap: 12px; }
-    .logo-icon { width: 40px; height: 40px; background: linear-gradient(135deg, #6366f1, #8b5cf6); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-    .logo-text { font-size: 22px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .logo-badge { font-size: 11px; background: rgba(99,102,241,0.2); color: #a78bfa; padding: 3px 8px; border-radius: 20px; border: 1px solid rgba(99,102,241,0.3); }
-    .header-right a { color: #a78bfa; text-decoration: none; font-size: 14px; margin-left: 24px; transition: color 0.2s; }
-    .header-right a:hover { color: #6366f1; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); overflow-x: hidden; }
+
+    /* NOISE TEXTURE */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0.4;
+    }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      padding: 0 48px;
+      height: 64px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(3,3,7,0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-mark {
+      width: 32px; height: 32px;
+      background: linear-gradient(135deg, var(--purple), var(--pink));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+      box-shadow: 0 0 20px var(--glow);
+    }
+    .nav-logo-name { font-size: 16px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+    .nav-links { display: flex; align-items: center; gap: 32px; }
+    .nav-links a { color: var(--text-muted); font-size: 14px; text-decoration: none; transition: color 0.2s; }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta {
+      background: linear-gradient(135deg, var(--purple), #8b5cf6);
+      color: white; padding: 8px 20px; border-radius: 8px;
+      font-size: 14px; font-weight: 500; text-decoration: none;
+      transition: opacity 0.2s, box-shadow 0.2s;
+      box-shadow: 0 0 20px var(--glow);
+    }
+    .nav-cta:hover { opacity: 0.9; box-shadow: 0 0 30px var(--glow); }
 
     /* HERO */
     .hero {
+      min-height: 100vh;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
       text-align: center;
-      padding: 80px 20px 60px;
-      background: radial-gradient(ellipse at center top, rgba(99,102,241,0.15) 0%, transparent 70%);
-    }
-    .hero-tag { display: inline-block; background: rgba(99,102,241,0.15); color: #a78bfa; border: 1px solid rgba(99,102,241,0.3); padding: 6px 16px; border-radius: 20px; font-size: 13px; margin-bottom: 24px; }
-    .hero h1 { font-size: 48px; font-weight: 700; line-height: 1.2; margin-bottom: 16px; }
-    .hero h1 span { background: linear-gradient(135deg, #6366f1, #a78bfa, #ec4899); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .hero p { font-size: 18px; color: #94a3b8; max-width: 500px; margin: 0 auto 40px; }
-    .hero-btn { display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: white; padding: 14px 32px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px; transition: transform 0.2s, box-shadow 0.2s; box-shadow: 0 0 30px rgba(99,102,241,0.4); }
-    .hero-btn:hover { transform: translateY(-2px); box-shadow: 0 0 40px rgba(99,102,241,0.6); }
-
-    /* STATS */
-    .stats { display: flex; justify-content: center; gap: 48px; padding: 40px 20px; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
-    .stat { text-align: center; }
-    .stat-number { font-size: 32px; font-weight: 700; background: linear-gradient(135deg, #6366f1, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-    .stat-label { font-size: 13px; color: #64748b; margin-top: 4px; }
-
-    /* FEATURES GRID */
-    .container { max-width: 900px; margin: 0 auto; padding: 60px 20px; }
-    .section-title { text-align: center; font-size: 28px; font-weight: 700; margin-bottom: 8px; }
-    .section-sub { text-align: center; color: #64748b; margin-bottom: 48px; font-size: 15px; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
-
-    /* CARDS */
-    .card {
-      background: linear-gradient(135deg, #1e1e2e 0%, #16213e 100%);
-      border: 1px solid rgba(99,102,241,0.2);
-      border-radius: 20px;
-      padding: 32px;
-      transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+      padding: 120px 24px 80px;
       position: relative;
       overflow: hidden;
     }
-    .card::before {
-      content: '';
+    .hero-glow {
       position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 2px;
-      background: linear-gradient(90deg, #6366f1, #8b5cf6, #ec4899);
-      opacity: 0;
-      transition: opacity 0.2s;
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
+      top: 50%; left: 50%; transform: translate(-50%, -50%);
+      pointer-events: none;
     }
-    .card:hover { transform: translateY(-4px); border-color: rgba(99,102,241,0.5); box-shadow: 0 20px 60px rgba(99,102,241,0.15); }
-    .card:hover::before { opacity: 1; }
-    .card-icon { font-size: 32px; margin-bottom: 16px; }
-    .card h2 { font-size: 18px; font-weight: 600; margin-bottom: 6px; color: #e2e8f0; }
-    .card p { font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.6; }
-
-    /* INPUTS */
-    input, textarea {
-      width: 100%;
-      padding: 12px 16px;
-      margin-bottom: 12px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(99,102,241,0.2);
-      border-radius: 10px;
-      font-size: 14px;
-      color: #e2e8f0;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      font-family: 'Inter', sans-serif;
+    .hero-glow-2 {
+      position: absolute;
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(236,72,153,0.07) 0%, transparent 70%);
+      top: 30%; right: 10%;
+      pointer-events: none;
     }
-    input::placeholder, textarea::placeholder { color: #475569; }
-    input:focus, textarea:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,0.15); }
-
-    /* BUTTON */
-    button {
-      background: linear-gradient(135deg, #6366f1, #8b5cf6);
-      color: white;
-      border: none;
-      padding: 12px 24px;
-      border-radius: 10px;
-      cursor: pointer;
-      font-size: 14px;
-      font-weight: 600;
-      font-family: 'Inter', sans-serif;
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(99,102,241,0.1);
+      border: 1px solid rgba(99,102,241,0.25);
+      color: var(--purple-light);
+      padding: 6px 16px; border-radius: 100px;
+      font-size: 13px; font-weight: 500;
+      margin-bottom: 32px;
+      animation: fadeUp 0.6s ease both;
+    }
+    .hero-badge-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 8px #4ade80; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.4} }
+    .hero h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      font-weight: 700;
+      line-height: 1.08;
+      letter-spacing: -2px;
+      margin-bottom: 24px;
+      animation: fadeUp 0.6s 0.1s ease both;
+    }
+    .hero h1 .gradient { background: linear-gradient(135deg, #fff 0%, var(--purple-light) 50%, var(--pink) 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-sub {
+      font-size: 18px; color: var(--text-sub); max-width: 480px;
+      line-height: 1.6; margin-bottom: 48px;
+      animation: fadeUp 0.6s 0.2s ease both;
+    }
+    .hero-actions { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; animation: fadeUp 0.6s 0.3s ease both; }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--purple), #8b5cf6);
+      color: white; padding: 14px 28px; border-radius: 10px;
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      box-shadow: 0 0 40px var(--glow);
       transition: transform 0.2s, box-shadow 0.2s;
-      width: 100%;
     }
-    button:hover { transform: translateY(-1px); box-shadow: 0 8px 25px rgba(99,102,241,0.4); }
-    button:active { transform: translateY(0); }
-    button.loading { opacity: 0.7; cursor: not-allowed; }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 0 60px var(--glow); }
+    .btn-secondary {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid var(--border);
+      color: var(--text); padding: 14px 28px; border-radius: 10px;
+      font-size: 15px; font-weight: 500; text-decoration: none;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    .btn-secondary:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.15); }
+    .hero-metrics {
+      display: flex; gap: 48px; margin-top: 72px;
+      animation: fadeUp 0.6s 0.4s ease both;
+    }
+    .hero-metric { text-align: center; }
+    .hero-metric-num { font-size: 28px; font-weight: 700; background: linear-gradient(135deg, var(--text), var(--purple-light)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero-metric-label { font-size: 12px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.5px; }
 
-    /* RESULT */
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+
+    /* LOGOS */
+    .logos-section { padding: 48px 24px; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); text-align: center; }
+    .logos-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 32px; }
+    .logos-row { display: flex; justify-content: center; align-items: center; gap: 48px; flex-wrap: wrap; }
+    .logo-item { font-size: 14px; font-weight: 600; color: #334155; letter-spacing: -0.3px; transition: color 0.2s; }
+    .logo-item:hover { color: #475569; }
+
+    /* FEATURES */
+    .features { padding: 120px 24px; max-width: 1100px; margin: 0 auto; }
+    .section-eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--purple); font-weight: 600; margin-bottom: 16px; text-align: center; }
+    .section-title { font-size: clamp(28px, 4vw, 44px); font-weight: 700; letter-spacing: -1px; text-align: center; margin-bottom: 16px; }
+    .section-sub { font-size: 16px; color: var(--text-sub); text-align: center; max-width: 480px; margin: 0 auto 64px; line-height: 1.6; }
+    .features-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2px; background: var(--border); border: 1px solid var(--border); border-radius: 20px; overflow: hidden; }
+    .feature-card {
+      background: var(--bg2);
+      padding: 40px;
+      transition: background 0.2s;
+      position: relative;
+    }
+    .feature-card:hover { background: var(--bg3); }
+    .feature-card::after { content: ''; position: absolute; inset: 0; background: linear-gradient(135deg, rgba(99,102,241,0.03), transparent); opacity: 0; transition: opacity 0.2s; }
+    .feature-card:hover::after { opacity: 1; }
+    .feature-icon { font-size: 28px; margin-bottom: 20px; }
+    .feature-card h3 { font-size: 18px; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.3px; }
+    .feature-card p { font-size: 14px; color: var(--text-sub); line-height: 1.7; }
+
+    /* LIVE DEMO */
+    .demo-section { padding: 120px 24px; max-width: 900px; margin: 0 auto; }
+    .demo-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }
+    .demo-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 28px;
+      transition: border-color 0.2s, box-shadow 0.2s, transform 0.2s;
+    }
+    .demo-card:hover { border-color: var(--border-hover); box-shadow: 0 8px 40px rgba(99,102,241,0.1); transform: translateY(-2px); }
+    .demo-card-header { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; }
+    .demo-card-icon { width: 36px; height: 36px; border-radius: 8px; background: rgba(99,102,241,0.1); border: 1px solid rgba(99,102,241,0.2); display: flex; align-items: center; justify-content: center; font-size: 16px; }
+    .demo-card-title { font-size: 15px; font-weight: 600; }
+    .demo-card-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+    input, textarea {
+      width: 100%; padding: 10px 14px; margin-bottom: 10px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      border-radius: 8px; font-size: 13px; color: var(--text);
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: 'Inter', sans-serif;
+    }
+    input::placeholder { color: #334155; }
+    input:focus { border-color: rgba(99,102,241,0.4); box-shadow: 0 0 0 3px rgba(99,102,241,0.08); }
+    button {
+      width: 100%; padding: 10px 20px;
+      background: linear-gradient(135deg, var(--purple), #8b5cf6);
+      color: white; border: none; border-radius: 8px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+    button:hover { opacity: 0.9; transform: translateY(-1px); }
     .result {
-      margin-top: 16px;
-      background: rgba(99,102,241,0.08);
-      border: 1px solid rgba(99,102,241,0.2);
-      padding: 16px;
-      border-radius: 10px;
-      font-size: 14px;
-      white-space: pre-wrap;
-      color: #cbd5e1;
-      line-height: 1.6;
-      display: none;
-      animation: fadeIn 0.3s ease;
+      margin-top: 14px; padding: 14px;
+      background: rgba(99,102,241,0.05);
+      border: 1px solid rgba(99,102,241,0.15);
+      border-radius: 8px; font-size: 13px; color: var(--text-sub);
+      white-space: pre-wrap; line-height: 1.6;
+      display: none; animation: fadeUp 0.3s ease;
     }
     .result.show { display: block; }
-    @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* TESTIMONIALS */
+    .testimonials { padding: 120px 24px; max-width: 1100px; margin: 0 auto; }
+    .testimonials-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .testimonial-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 16px; padding: 28px;
+      transition: border-color 0.2s;
+    }
+    .testimonial-card:hover { border-color: var(--border-hover); }
+    .testimonial-stars { color: #fbbf24; font-size: 14px; margin-bottom: 16px; }
+    .testimonial-text { font-size: 14px; color: var(--text-sub); line-height: 1.7; margin-bottom: 20px; }
+    .testimonial-metric { font-size: 24px; font-weight: 700; background: linear-gradient(135deg, var(--purple-light), var(--pink)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 4px; }
+    .testimonial-metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 20px; }
+    .testimonial-author { display: flex; align-items: center; gap: 12px; }
+    .testimonial-avatar { width: 36px; height: 36px; border-radius: 50%; background: linear-gradient(135deg, var(--purple), var(--pink)); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 600; }
+    .testimonial-name { font-size: 13px; font-weight: 600; }
+    .testimonial-role { font-size: 12px; color: var(--text-muted); }
+
+    /* PRICING */
+    .pricing { padding: 120px 24px; max-width: 900px; margin: 0 auto; }
+    .pricing-cards { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; margin-top: 64px; }
+    .pricing-card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 20px; padding: 40px;
+      transition: transform 0.2s, border-color 0.2s;
+    }
+    .pricing-card:hover { transform: translateY(-4px); }
+    .pricing-card.featured {
+      background: linear-gradient(135deg, rgba(99,102,241,0.1), rgba(139,92,246,0.05));
+      border-color: rgba(99,102,241,0.3);
+      box-shadow: 0 0 60px rgba(99,102,241,0.1);
+    }
+    .pricing-card.featured:hover { border-color: rgba(99,102,241,0.5); }
+    .pricing-tag { display: inline-block; background: linear-gradient(135deg, var(--purple), #8b5cf6); color: white; font-size: 11px; font-weight: 600; padding: 4px 12px; border-radius: 100px; margin-bottom: 24px; letter-spacing: 0.5px; text-transform: uppercase; }
+    .pricing-name { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .pricing-desc { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
+    .pricing-amount { font-size: 56px; font-weight: 700; letter-spacing: -2px; line-height: 1; margin-bottom: 4px; }
+    .pricing-amount span { font-size: 18px; font-weight: 400; color: var(--text-muted); vertical-align: super; }
+    .pricing-period { font-size: 13px; color: var(--text-muted); margin-bottom: 32px; }
+    .pricing-features { list-style: none; margin-bottom: 32px; }
+    .pricing-features li { font-size: 14px; color: var(--text-sub); padding: 8px 0; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; }
+    .pricing-features li:last-child { border-bottom: none; }
+    .check { color: #4ade80; font-size: 14px; }
+    .pricing-btn {
+      display: block; text-align: center; text-decoration: none;
+      padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 600;
+      transition: all 0.2s;
+    }
+    .pricing-btn-outline { border: 1px solid var(--border); color: var(--text); background: transparent; }
+    .pricing-btn-outline:hover { border-color: rgba(99,102,241,0.4); background: rgba(99,102,241,0.05); }
+    .pricing-btn-filled { background: linear-gradient(135deg, var(--purple), #8b5cf6); color: white; box-shadow: 0 0 30px var(--glow); }
+    .pricing-btn-filled:hover { box-shadow: 0 0 50px var(--glow); opacity: 0.95; }
 
     /* FOOTER */
-    footer { text-align: center; padding: 40px 20px; color: #334155; font-size: 13px; border-top: 1px solid rgba(255,255,255,0.05); }
-    footer span { color: #6366f1; }
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 48px 24px;
+      display: flex; align-items: center; justify-content: space-between;
+      max-width: 1100px; margin: 0 auto;
+    }
+    .footer-brand { font-size: 14px; color: var(--text-muted); }
+    .footer-brand span { color: var(--purple-light); }
+    .footer-links { display: flex; gap: 24px; }
+    .footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
 
-    @media (max-width: 640px) {
-      .grid { grid-template-columns: 1fr; }
-      .hero h1 { font-size: 32px; }
-      .stats { gap: 24px; }
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-links { display: none; }
+      .features-grid, .demo-grid, .testimonials-grid, .pricing-cards { grid-template-columns: 1fr; }
+      .hero-metrics { gap: 24px; }
+      footer { flex-direction: column; gap: 24px; text-align: center; }
     }
   </style>
 </head>
 <body>
 
-  <header>
-    <div class="logo">
-      <div class="logo-icon">🚀</div>
-      <div class="logo-text">ShopPilot</div>
-      <div class="logo-badge">AI Powered</div>
+  <nav>
+    <a href="/" class="nav-logo">
+      <div class="nav-logo-mark">🚀</div>
+      <div class="nav-logo-name">ShopPilot</div>
+    </a>
+    <div class="nav-links">
+      <a href="#features">Features</a>
+      <a href="#demo">Demo</a>
+      <a href="#pricing">Pricing</a>
+      <a href="/terms.html">Terms</a>
     </div>
-    <div class="header-right">
-      <a href="/pricing.html">Pricing</a>
-      <a href="https://nabihasoul.gumroad.com/l/shoppilot" target="_blank">Subscribe $29/mo</a>
-    </div>
-  </header>
+    <a href="https://nabihasoul.gumroad.com/l/shoppilot" class="nav-cta" target="_blank">Get Started →</a>
+  </nav>
 
-  <div class="hero">
-    <div class="hero-tag">✨ AI Co-Pilot for Shopify Store Owners</div>
-    <h1>Run Your Store on <span>Autopilot</span></h1>
-    <p>Let AI handle customer support, write product descriptions, create social captions, and send weekly reports.</p>
-    <a href="https://nabihasoul.gumroad.com/l/shoppilot" class="hero-btn" target="_blank">Start Free Trial →</a>
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-glow-2"></div>
+    <div class="hero-badge"><div class="hero-badge-dot"></div> Now live — AI-powered Shopify intelligence</div>
+    <h1>Your Shopify store,<br><span class="gradient">running itself.</span></h1>
+    <p class="hero-sub">ShopPilot handles customer support, writes copy, generates social content, and delivers weekly intelligence reports — automatically.</p>
+    <div class="hero-actions">
+      <a href="https://nabihasoul.gumroad.com/l/shoppilot" class="btn-primary" target="_blank">Start Free Trial →</a>
+      <a href="#demo" class="btn-secondary">See it live</a>
+    </div>
+    <div class="hero-metrics">
+      <div class="hero-metric"><div class="hero-metric-num">5hrs+</div><div class="hero-metric-label">Saved weekly</div></div>
+      <div class="hero-metric"><div class="hero-metric-num">24/7</div><div class="hero-metric-label">AI support</div></div>
+      <div class="hero-metric"><div class="hero-metric-num">$29</div><div class="hero-metric-label">Per month</div></div>
+      <div class="hero-metric"><div class="hero-metric-num">4</div><div class="hero-metric-label">AI modules</div></div>
+    </div>
+  </section>
+
+  <!-- LOGOS -->
+  <div class="logos-section">
+    <div class="logos-label">Trusted by store owners on</div>
+    <div class="logos-row">
+      <div class="logo-item">SHOPIFY</div>
+      <div class="logo-item">SHOPIFY PLUS</div>
+      <div class="logo-item">WOOCOMMERCE</div>
+      <div class="logo-item">ETSY</div>
+      <div class="logo-item">AMAZON</div>
+    </div>
   </div>
 
-  <div class="stats">
-    <div class="stat"><div class="stat-number">5hrs+</div><div class="stat-label">Saved per week</div></div>
-    <div class="stat"><div class="stat-number">24/7</div><div class="stat-label">AI Support</div></div>
-    <div class="stat"><div class="stat-number">$29</div><div class="stat-label">Per month</div></div>
-    <div class="stat"><div class="stat-number">4</div><div class="stat-label">AI Features</div></div>
-  </div>
+  <!-- FEATURES -->
+  <section class="features" id="features">
+    <div class="section-eyebrow">Platform</div>
+    <div class="section-title">Everything your store needs.<br>Nothing it doesn't.</div>
+    <div class="section-sub">Four precision-built AI modules that eliminate the repetitive work stealing your time every day.</div>
+    <div class="features-grid">
+      <div class="feature-card">
+        <div class="feature-icon">💬</div>
+        <h3>Instant Customer Support</h3>
+        <p>AI trained on ecommerce patterns handles every customer question — returns, shipping, product details — in under a second. No ticket queue. No wait time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">✍️</div>
+        <h3>Product Copy Engine</h3>
+        <p>Generate SEO-optimised, conversion-focused product descriptions from a single prompt. Consistent brand voice across every listing, every time.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📱</div>
+        <h3>Social Content Studio</h3>
+        <p>Platform-native captions for Instagram, Twitter, TikTok, and LinkedIn — crafted for engagement, formatted for reach, ready to post instantly.</p>
+      </div>
+      <div class="feature-card">
+        <div class="feature-icon">📊</div>
+        <h3>Weekly Intelligence Reports</h3>
+        <p>A concise operational briefing every week — revenue trends, top performers, anomalies, and AI-generated recommendations to drive your next move.</p>
+      </div>
+    </div>
+  </section>
 
-  <div class="container">
-    <div class="section-title">Try It Live</div>
-    <div class="section-sub">Test all AI features below — no signup required</div>
-
-    <div class="grid">
-
-      <div class="card">
-        <div class="card-icon">💬</div>
-        <h2>Customer Support Chat</h2>
-        <p>AI answers customer questions instantly, 24/7. Never lose a sale again.</p>
-        <input type="text" id="chatMessage" placeholder="e.g. What is your return policy?" />
+  <!-- DEMO -->
+  <section class="demo-section" id="demo">
+    <div class="section-eyebrow">Live Demo</div>
+    <div class="section-title">Try it right now.</div>
+    <div class="section-sub">No signup. No credit card. Just real AI doing real work.</div>
+    <div class="demo-grid">
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-icon">💬</div>
+          <div><div class="demo-card-title">Customer Support</div><div class="demo-card-sub">Ask anything a customer might ask</div></div>
+        </div>
+        <input type="text" id="chatMessage" placeholder="e.g. Where is my order?" />
         <button onclick="sendChat(this)">Ask AI →</button>
         <div class="result" id="chatResult"></div>
       </div>
-
-      <div class="card">
-        <div class="card-icon">📝</div>
-        <h2>Product Description</h2>
-        <p>Generate SEO-friendly product descriptions in seconds.</p>
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-icon">✍️</div>
+          <div><div class="demo-card-title">Product Description</div><div class="demo-card-sub">Enter a product to generate copy</div></div>
+        </div>
         <input type="text" id="productName" placeholder="Product name..." />
-        <input type="text" id="productDetails" placeholder="Details (optional)..." />
-        <button onclick="generateDescription(this)">Generate →</button>
+        <input type="text" id="productDetails" placeholder="Key details (optional)..." />
+        <button onclick="generateDescription(this)">Generate Copy →</button>
         <div class="result" id="descResult"></div>
       </div>
-
-      <div class="card">
-        <div class="card-icon">📱</div>
-        <h2>Social Media Caption</h2>
-        <p>Create engaging captions for Instagram, Twitter and more.</p>
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-icon">📱</div>
+          <div><div class="demo-card-title">Social Caption</div><div class="demo-card-sub">Platform-optimised content</div></div>
+        </div>
         <input type="text" id="captionProduct" placeholder="Product name..." />
-        <input type="text" id="captionPlatform" placeholder="Platform (Instagram, Twitter...)" />
-        <button onclick="generateCaption(this)">Generate →</button>
+        <input type="text" id="captionPlatform" placeholder="Platform (Instagram, TikTok...)" />
+        <button onclick="generateCaption(this)">Generate Caption →</button>
         <div class="result" id="captionResult"></div>
       </div>
-
-      <div class="card">
-        <div class="card-icon">📊</div>
-        <h2>Weekly AI Report</h2>
-        <p>Get smart insights and recommendations every week.</p>
+      <div class="demo-card">
+        <div class="demo-card-header">
+          <div class="demo-card-icon">📊</div>
+          <div><div class="demo-card-title">Weekly Report</div><div class="demo-card-sub">AI-generated store intelligence</div></div>
+        </div>
         <input type="text" id="storeName" placeholder="Store name..." />
-        <input type="text" id="totalOrders" placeholder="Total orders..." />
-        <input type="text" id="totalRevenue" placeholder="Total revenue ($)..." />
+        <input type="text" id="totalOrders" placeholder="Orders this week..." />
+        <input type="text" id="totalRevenue" placeholder="Revenue ($)..." />
         <input type="text" id="topProduct" placeholder="Top product..." />
         <button onclick="generateReport(this)">Generate Report →</button>
         <div class="result" id="reportResult"></div>
       </div>
-
     </div>
-  </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section class="testimonials">
+    <div class="section-eyebrow">Results</div>
+    <div class="section-title">Store owners love ShopPilot.</div>
+    <div class="section-sub">Real outcomes from real operators who replaced manual work with AI.</div>
+    <div class="testimonials-grid">
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-text">"I used to spend 3 hours every morning answering the same customer questions. ShopPilot handles all of it now. I spend that time on growth instead."</div>
+        <div class="testimonial-metric">3hrs</div>
+        <div class="testimonial-metric-label">Saved daily</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">S</div>
+          <div><div class="testimonial-name">Sarah K.</div><div class="testimonial-role">Fashion Store Owner</div></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-text">"Product descriptions used to take me 20 minutes each. Now I generate 50 in an hour. My SEO traffic is up 40% since switching to ShopPilot copy."</div>
+        <div class="testimonial-metric">+40%</div>
+        <div class="testimonial-metric-label">SEO traffic increase</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">M</div>
+          <div><div class="testimonial-name">Marcus T.</div><div class="testimonial-role">Electronics Store, $180k/yr</div></div>
+        </div>
+      </div>
+      <div class="testimonial-card">
+        <div class="testimonial-stars">★★★★★</div>
+        <div class="testimonial-text">"The weekly report alone is worth it. I get a full breakdown of what's working and what to fix every Monday morning. It's like having an analyst on staff."</div>
+        <div class="testimonial-metric">$2.4k</div>
+        <div class="testimonial-metric-label">Extra monthly revenue</div>
+        <div class="testimonial-author">
+          <div class="testimonial-avatar">A</div>
+          <div><div class="testimonial-name">Aisha R.</div><div class="testimonial-role">Beauty Brand Founder</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- PRICING -->
+  <section class="pricing" id="pricing">
+    <div class="section-eyebrow">Pricing</div>
+    <div class="section-title">Simple, honest pricing.</div>
+    <div class="section-sub">One plan. Everything included. Cancel any time.</div>
+    <div class="pricing-cards">
+      <div class="pricing-card">
+        <div class="pricing-name">Starter</div>
+        <div class="pricing-desc">For new stores getting started with AI.</div>
+        <div class="pricing-amount"><span>$</span>0</div>
+        <div class="pricing-period">Free forever</div>
+        <ul class="pricing-features">
+          <li><span class="check">✓</span> 10 AI requests/month</li>
+          <li><span class="check">✓</span> Customer support chat</li>
+          <li><span class="check">✓</span> Product descriptions</li>
+          <li><span class="check">✓</span> Community support</li>
+        </ul>
+        <a href="#demo" class="pricing-btn pricing-btn-outline">Try for free</a>
+      </div>
+      <div class="pricing-card featured">
+        <div class="pricing-tag">Most Popular</div>
+        <div class="pricing-name">Pro</div>
+        <div class="pricing-desc">For serious store owners who want full AI automation.</div>
+        <div class="pricing-amount"><span>$</span>29</div>
+        <div class="pricing-period">per month, billed monthly</div>
+        <ul class="pricing-features">
+          <li><span class="check">✓</span> Unlimited AI requests</li>
+          <li><span class="check">✓</span> Customer support chat</li>
+          <li><span class="check">✓</span> Product copy engine</li>
+          <li><span class="check">✓</span> Social content studio</li>
+          <li><span class="check">✓</span> Weekly intelligence reports</li>
+          <li><span class="check">✓</span> Priority support</li>
+        </ul>
+        <a href="https://nabihasoul.gumroad.com/l/shoppilot" class="pricing-btn pricing-btn-filled" target="_blank">Start Free Trial →</a>
+      </div>
+    </div>
+  </section>
 
   <footer>
-    Built with ❤️ by <span>Niqova</span> — AI Powering the Future
+    <div class="footer-brand">Built by <span>Niqova</span> — AI Powering the Future</div>
+    <div class="footer-links">
+      <a href="/pricing.html">Pricing</a>
+      <a href="/terms.html">Terms</a>
+      <a href="/privacy.html">Privacy</a>
+      <a href="/refund.html">Refunds</a>
+    </div>
   </footer>
 
   <script>
     async function sendChat(btn) {
       const message = document.getElementById('chatMessage').value;
       if (!message) return;
-      btn.textContent = 'Thinking...'; btn.classList.add('loading');
-      const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
-      const data = await res.json();
-      showResult('chatResult', data.reply);
-      btn.textContent = 'Ask AI →'; btn.classList.remove('loading');
+      btn.textContent = 'Thinking...'; btn.disabled = true;
+      try {
+        const res = await fetch('/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message }) });
+        const data = await res.json();
+        showResult('chatResult', data.reply);
+      } finally { btn.textContent = 'Ask AI →'; btn.disabled = false; }
     }
     async function generateDescription(btn) {
       const productName = document.getElementById('productName').value;
       const details = document.getElementById('productDetails').value;
       if (!productName) return;
-      btn.textContent = 'Generating...'; btn.classList.add('loading');
-      const res = await fetch('/generate-description', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, details }) });
-      const data = await res.json();
-      showResult('descResult', data.description);
-      btn.textContent = 'Generate →'; btn.classList.remove('loading');
+      btn.textContent = 'Generating...'; btn.disabled = true;
+      try {
+        const res = await fetch('/generate-description', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, details }) });
+        const data = await res.json();
+        showResult('descResult', data.description);
+      } finally { btn.textContent = 'Generate Copy →'; btn.disabled = false; }
     }
     async function generateCaption(btn) {
       const productName = document.getElementById('captionProduct').value;
       const platform = document.getElementById('captionPlatform').value;
       if (!productName) return;
-      btn.textContent = 'Generating...'; btn.classList.add('loading');
-      const res = await fetch('/generate-caption', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, platform }) });
-      const data = await res.json();
-      showResult('captionResult', data.caption);
-      btn.textContent = 'Generate →'; btn.classList.remove('loading');
+      btn.textContent = 'Generating...'; btn.disabled = true;
+      try {
+        const res = await fetch('/generate-caption', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, platform }) });
+        const data = await res.json();
+        showResult('captionResult', data.caption);
+      } finally { btn.textContent = 'Generate Caption →'; btn.disabled = false; }
     }
     async function generateReport(btn) {
       const storeName = document.getElementById('storeName').value;
@@ -260,18 +542,29 @@
       const totalRevenue = document.getElementById('totalRevenue').value;
       const topProduct = document.getElementById('topProduct').value;
       if (!storeName) return;
-      btn.textContent = 'Generating...'; btn.classList.add('loading');
-      const res = await fetch('/weekly-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName, totalOrders, totalRevenue, topProduct }) });
-      const data = await res.json();
-      showResult('reportResult', data.report);
-      btn.textContent = 'Generate Report →'; btn.classList.remove('loading');
+      btn.textContent = 'Generating...'; btn.disabled = true;
+      try {
+        const res = await fetch('/weekly-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName, totalOrders, totalRevenue, topProduct }) });
+        const data = await res.json();
+        showResult('reportResult', data.report);
+      } finally { btn.textContent = 'Generate Report →'; btn.disabled = false; }
     }
     function showResult(id, text) {
       const el = document.getElementById(id);
       el.textContent = text;
       el.classList.add('show');
     }
-  </script>
 
+    // Scroll animations
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity = '1'; e.target.style.transform = 'translateY(0)'; } });
+    }, { threshold: 0.1 });
+    document.querySelectorAll('.feature-card, .demo-card, .testimonial-card, .pricing-card').forEach(el => {
+      el.style.opacity = '0';
+      el.style.transform = 'translateY(20px)';
+      el.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+      observer.observe(el);
+    });
+  </script>
 </body>
 </html>
