@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Weekly Report — ShopPilot</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #18181f;
+      --border: rgba(255,255,255,0.07);
+      --accent: #6cffb3;
+      --accent2: #5b8fff;
+      --accent3: #ff7eb3;
+      --text: #f0f0f5;
+      --muted: #7a7a8e;
+      --card-bg: #14141c;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 20% 20%, rgba(108,255,179,0.04) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, rgba(91,143,255,0.04) 0%, transparent 50%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page-wrap {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 40px 24px 80px;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 48px;
+      padding-bottom: 24px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .brand {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: 1.1rem;
+      letter-spacing: -0.02em;
+      color: var(--accent);
+    }
+
+    .back-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--muted);
+      font-size: 0.875rem;
+      text-decoration: none;
+      transition: color 0.2s;
+      cursor: pointer;
+      background: none;
+      border: none;
+      font-family: 'DM Sans', sans-serif;
+    }
+    .back-btn:hover { color: var(--text); }
+
+    .report-hero {
+      margin-bottom: 40px;
+      opacity: 0;
+      transform: translateY(16px);
+      animation: fadeUp 0.5s 0.1s forwards;
+    }
+
+    .report-label {
+      font-size: 0.75rem;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .report-label::before {
+      content: '';
+      width: 20px;
+      height: 2px;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    .report-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 2.4rem;
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1.1;
+      margin-bottom: 12px;
+    }
+
+    .report-meta {
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .metrics-row {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      margin-bottom: 32px;
+    }
+
+    .metric-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+      opacity: 0;
+      transform: translateY(12px);
+      animation: fadeUp 0.45s forwards;
+    }
+    .metric-card:nth-child(1) { animation-delay: 0.2s; }
+    .metric-card:nth-child(2) { animation-delay: 0.28s; }
+    .metric-card:nth-child(3) { animation-delay: 0.36s; }
+
+    .metric-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .metric-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1.8rem;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1;
+    }
+
+    .metric-card:nth-child(1) .metric-value { color: var(--accent); }
+    .metric-card:nth-child(2) .metric-value { color: var(--accent2); }
+    .metric-card:nth-child(3) .metric-value { color: var(--accent3); }
+
+    .summary-block {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      border-radius: 12px;
+      padding: 24px 28px;
+      margin-bottom: 32px;
+      line-height: 1.7;
+      font-size: 1rem;
+      color: rgba(240,240,245,0.9);
+      opacity: 0;
+      animation: fadeUp 0.45s 0.44s forwards;
+    }
+
+    .section-label {
+      font-size: 0.7rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .section-label::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    .highlights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.45s 0.52s forwards;
+    }
+
+    .highlight-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .highlight-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--accent);
+      margin-top: 6px;
+      flex-shrink: 0;
+    }
+
+    .insights-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.45s 0.6s forwards;
+    }
+
+    .insight-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px;
+    }
+    .insight-card:first-child { grid-column: span 2; }
+
+    .insight-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: var(--accent2);
+    }
+
+    .insight-body {
+      font-size: 0.875rem;
+      line-height: 1.65;
+      color: rgba(240,240,245,0.8);
+    }
+
+    .recs-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 32px;
+      opacity: 0;
+      animation: fadeUp 0.45s 0.68s forwards;
+    }
+
+    .rec-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 18px 20px;
+      display: flex;
+      gap: 16px;
+      align-items: flex-start;
+    }
+
+    .rec-num {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 800;
+      color: var(--accent3);
+      background: rgba(255,126,179,0.1);
+      border-radius: 6px;
+      padding: 3px 8px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .rec-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 0.9rem;
+      font-weight: 700;
+      margin-bottom: 4px;
+    }
+
+    .rec-body {
+      font-size: 0.875rem;
+      line-height: 1.6;
+      color: rgba(240,240,245,0.75);
+    }
+
+    .next-steps-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 40px;
+      opacity: 0;
+      animation: fadeUp 0.45s 0.76s forwards;
+    }
+
+    .next-step-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 14px 18px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .next-step-item:hover { border-color: rgba(108,255,179,0.25); }
+
+    .next-step-item input[type="checkbox"] {
+      appearance: none;
+      -webkit-appearance: none;
+      width: 18px;
+      height: 18px;
+      border: 2px solid var(--muted);
+      border-radius: 5px;
+      flex-shrink: 0;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+    }
+
+    .next-step-item input[type="checkbox"]:checked {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .next-step-item input[type="checkbox"]:checked::after {
+      content: '';
+      position: absolute;
+      left: 3px;
+      top: 1px;
+      width: 8px;
+      height: 5px;
+      border-left: 2px solid #000;
+      border-bottom: 2px solid #000;
+      transform: rotate(-45deg);
+    }
+
+    .next-step-item.done {
+      opacity: 0.45;
+      text-decoration: line-through;
+      color: var(--muted);
+    }
+
+    .actions-row {
+      display: flex;
+      gap: 12px;
+      opacity: 0;
+      animation: fadeUp 0.45s 0.84s forwards;
+    }
+
+    .btn-export {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #000;
+      border: none;
+      padding: 13px 24px;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.15s;
+    }
+    .btn-export:hover { opacity: 0.88; transform: translateY(-1px); }
+
+    .btn-new {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--border);
+      padding: 13px 24px;
+      border-radius: 10px;
+      font-family: 'Syne', sans-serif;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      text-decoration: none;
+      transition: border-color 0.2s, transform 0.15s;
+    }
+    .btn-new:hover { border-color: var(--accent2); transform: translateY(-1px); }
+
+    #loading-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 60vh;
+      gap: 16px;
+    }
+
+    .loader-ring {
+      width: 44px;
+      height: 44px;
+      border: 3px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.9s linear infinite;
+    }
+
+    .loader-text {
+      font-size: 0.9rem;
+      color: var(--muted);
+    }
+
+    #report-content { display: none; }
+    #error-state {
+      display: none;
+      text-align: center;
+      padding: 60px 20px;
+    }
+    .error-msg {
+      color: var(--muted);
+      margin-bottom: 20px;
+    }
+
+    @keyframes fadeUp {
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 600px) {
+      .metrics-row { grid-template-columns: 1fr 1fr; }
+      .metrics-row .metric-card:last-child { grid-column: span 2; }
+      .insights-grid { grid-template-columns: 1fr; }
+      .insight-card:first-child { grid-column: span 1; }
+      .report-title { font-size: 1.75rem; }
+      .actions-row { flex-direction: column; }
+    }
+
+    @media print {
+      body { background: #fff; color: #000; }
+      body::before { display: none; }
+      .back-btn, .actions-row { display: none; }
+      .metric-value { color: #000 !important; }
+      .insight-title { color: #333 !important; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="page-wrap">
+  <div class="header">
+    <span class="brand">ShopPilot</span>
+    <button class="back-btn" onclick="window.location.href='/'">← Back to Dashboard</button>
+  </div>
+
+  <div id="loading-state">
+    <div class="loader-ring"></div>
+    <div class="loader-text">Preparing your report…</div>
+  </div>
+
+  <div id="error-state">
+    <p class="error-msg">No report data found. Please generate a report first.</p>
+    <a href="/" class="btn-new">← Go Back</a>
+  </div>
+
+  <div id="report-content">
+    <div class="report-hero">
+      <div class="report-label">Weekly Intelligence Report</div>
+      <div class="report-title" id="reportTitle">Store Report</div>
+      <div class="report-meta" id="reportMeta"></div>
+    </div>
+
+    <div class="metrics-row" id="metricsRow"></div>
+
+    <div class="section-label">Executive Summary</div>
+    <div class="summary-block" id="summaryBlock"></div>
+
+    <div class="section-label">This Week's Highlights</div>
+    <div class="highlights-list" id="highlightsList"></div>
+
+    <div class="section-label">Key Insights</div>
+    <div class="insights-grid" id="insightsGrid"></div>
+
+    <div class="section-label">Recommendations</div>
+    <div class="recs-list" id="recsList"></div>
+
+    <div class="section-label">Next Steps</div>
+    <div class="next-steps-list" id="nextStepsList"></div>
+
+    <div class="actions-row">
+      <button class="btn-export" onclick="exportPDF()">↓ Export PDF</button>
+      <a href="/" class="btn-new">+ Generate New Report</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function formatCurrency(val) {
+    const n = parseFloat(val);
+    if (isNaN(n)) return '$0';
+    return '$' + n.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  function init() {
+    const raw = sessionStorage.getItem('shopPilotReport');
+    if (!raw) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('error-state').style.display = 'block';
+      return;
+    }
+
+    let parsed;
+    try { parsed = JSON.parse(raw); }
+    catch (e) {
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('error-state').style.display = 'block';
+      return;
+    }
+
+    const { reportData, meta } = parsed;
+
+    document.getElementById('reportTitle').textContent = meta.storeName + ' — Weekly Report';
+    const now = new Date();
+    document.getElementById('reportMeta').textContent =
+      'Generated ' + now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+    const metricsRow = document.getElementById('metricsRow');
+    const metrics = [
+      { label: 'Total Orders', value: meta.orders || 0 },
+      { label: 'Total Revenue', value: formatCurrency(meta.revenue) },
+      { label: 'Avg. Order Value', value: formatCurrency(meta.avgOrderValue) },
+    ];
+    metricsRow.innerHTML = metrics.map(m => `
+      <div class="metric-card">
+        <div class="metric-label">${m.label}</div>
+        <div class="metric-value">${m.value}</div>
+      </div>
+    `).join('');
+
+    document.getElementById('summaryBlock').textContent = reportData.summary || '';
+
+    const highlights = reportData.highlights || [];
+    document.getElementById('highlightsList').innerHTML = highlights.map(h => `
+      <div class="highlight-item">
+        <div class="highlight-dot"></div>
+        <div>${h}</div>
+      </div>
+    `).join('');
+
+    const insights = reportData.insights || [];
+    document.getElementById('insightsGrid').innerHTML = insights.map(ins => `
+      <div class="insight-card">
+        <div class="insight-title">${ins.title}</div>
+        <div class="insight-body">${ins.body}</div>
+      </div>
+    `).join('');
+
+    const recs = reportData.recommendations || [];
+    document.getElementById('recsList').innerHTML = recs.map((r, i) => `
+      <div class="rec-card">
+        <div class="rec-num">0${i + 1}</div>
+        <div>
+          <div class="rec-title">${r.title}</div>
+          <div class="rec-body">${r.body}</div>
+        </div>
+      </div>
+    `).join('');
+
+    const steps = reportData.nextSteps || [];
+    document.getElementById('nextStepsList').innerHTML = steps.map((s, i) => `
+      <label class="next-step-item" id="step-${i}">
+        <input type="checkbox" onchange="toggleStep(${i})" />
+        <span>${s}</span>
+      </label>
+    `).join('');
+
+    document.getElementById('loading-state').style.display = 'none';
+    document.getElementById('report-content').style.display = 'block';
+  }
+
+  function toggleStep(i) {
+    const el = document.getElementById('step-' + i);
+    el.classList.toggle('done');
+  }
+
+  function exportPDF() {
+    window.print();
+  }
+
+  window.addEventListener('DOMContentLoaded', init);
+</script>
+
+</body>
+</html>

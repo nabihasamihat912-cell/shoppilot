@@ -56,6 +56,7 @@ app.post('/chat', async (req, res) => {
   });
   res.json({ reply: response.choices[0].message.content });
 });
+
 app.post('/generate-description', async (req, res) => {
   const { productName, details } = req.body;
   if (!productName) return res.status(400).json({ error: 'Missing productName' });
@@ -70,6 +71,7 @@ app.post('/generate-description', async (req, res) => {
 
   res.json({ description: response.choices[0].message.content });
 });
+
 app.post('/generate-caption', async (req, res) => {
   const { productName, platform } = req.body;
   if (!productName) return res.status(400).json({ error: 'Missing productName' });
@@ -84,6 +86,7 @@ app.post('/generate-caption', async (req, res) => {
 
   res.json({ caption: response.choices[0].message.content });
 });
+
 app.post('/weekly-report', async (req, res) => {
   const { storeName, totalOrders, totalRevenue, topProduct } = req.body;
   if (!storeName) return res.status(400).json({ error: 'Missing storeName' });
@@ -151,6 +154,7 @@ Use only these exact numbers. Do not invent any other metrics or percentages.`;
     res.status(500).json({ error: 'Failed to generate report', details: err.message });
   }
 });
+
 app.use(express.static('src/public'));
 
 const PORT = process.env.PORT || 3000;
