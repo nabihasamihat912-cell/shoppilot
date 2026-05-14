@@ -143,10 +143,19 @@ Use only these exact numbers. Do not invent any other metrics or percentages.`;
     });
 
     const raw = response.choices[0].message.content;
-    const reportData = JSON.parse(raw);
+    console.log('Groq raw response:', raw);
+
+    let reportData;
+    try {
+      reportData = JSON.parse(raw);
+    } catch (parseErr) {
+      console.error('JSON parse error:', parseErr.message);
+      return res.status(500).json({ error: 'Failed to parse report', raw });
+    }
+
     res.json({ success: true, reportData, meta: { storeName, orders, revenue, avgOrderValue, topProduct } });
   } catch (err) {
-    console.error('Report generation error:', err);
+    console.error('Report generation error:', err.message);
     res.status(500).json({ error: 'Failed to generate report', details: err.message });
   }
 });
