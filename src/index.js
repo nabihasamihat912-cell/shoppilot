@@ -114,9 +114,7 @@ app.get('/shopify-report', async (req, res) => {
     const productsResponse = await client.get({ path: 'products/count' });
     const totalProducts = productsResponse.body.count || 0;
 
-    // Get customers count
-    const customersResponse = await client.get({ path: 'customers/count' });
-    const totalCustomers = customersResponse.body.count || 0;
+    const totalCustomers = 'N/A';
 
     const storeName = shop.replace('.myshopify.com', '');
 
