@@ -281,6 +281,32 @@
     .footer-links a { font-size: 13px; color: var(--text-muted); text-decoration: none; transition: color 0.2s; }
     .footer-links a:hover { color: var(--text); }
 
+    .btn-shopify {
+      background: linear-gradient(135deg, #96bf48, #5a8a00);
+      color: white; padding: 14px 28px; border-radius: 10px;
+      font-size: 15px; font-weight: 600; text-decoration: none;
+      box-shadow: 0 0 40px rgba(96,191,72,0.25);
+      transition: transform 0.2s, box-shadow 0.2s;
+      cursor: pointer; border: none; font-family: 'Inter', sans-serif;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-shopify:hover { transform: translateY(-2px); box-shadow: 0 0 60px rgba(96,191,72,0.35); }
+    .connect-banner {
+      background: rgba(96,191,72,0.08);
+      border: 1px solid rgba(96,191,72,0.25);
+      border-radius: 12px; padding: 16px 20px;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 16px; margin-bottom: 16px; flex-wrap: wrap;
+    }
+    .connect-banner-text { font-size: 13px; color: var(--text-sub); }
+    .connect-banner-text strong { color: #96bf48; }
+    .connect-status {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(74,222,128,0.1); border: 1px solid rgba(74,222,128,0.25);
+      color: #4ade80; padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 500;
+    }
+    .connect-status-dot { width: 6px; height: 6px; background: #4ade80; border-radius: 50%; box-shadow: 0 0 8px #4ade80; animation: pulse 2s infinite; }
+
     @media (max-width: 768px) {
       nav { padding: 0 20px; }
       .nav-links { display: none; }
@@ -315,6 +341,7 @@
     <p class="hero-sub">ShopPilot handles customer support, writes copy, generates social content, and delivers weekly intelligence reports — automatically.</p>
     <div class="hero-actions">
       <a href="https://nabihasoul.gumroad.com/l/shoppilot" class="btn-primary" target="_blank">Start Free Trial →</a>
+      <button class="btn-shopify" id="heroConnectBtn" onclick="connectStore()">🛍️ Connect Your Store</button>
       <a href="#demo" class="btn-secondary">See it live</a>
     </div>
     <div class="hero-metrics">
@@ -394,11 +421,28 @@
           <div class="demo-card-icon">📊</div>
           <div><div class="demo-card-title">Weekly Report</div><div class="demo-card-sub">AI-generated store intelligence</div></div>
         </div>
-        <input type="text" id="storeName" placeholder="Store name..." />
-        <input type="text" id="totalOrders" placeholder="Orders this week..." />
-        <input type="text" id="totalRevenue" placeholder="Revenue ($)..." />
-        <input type="text" id="topProduct" placeholder="Top product..." />
-        <button onclick="generateReport(this)">Generate Report →</button>
+
+        <!-- Not connected state -->
+        <div id="reportNotConnected">
+          <div class="connect-banner">
+            <div class="connect-banner-text">Connect your real Shopify store to get a report with <strong>live data</strong></div>
+            <button class="btn-shopify" style="padding:8px 16px;font-size:13px;" onclick="connectStore()">🛍️ Connect Store</button>
+          </div>
+          <input type="text" id="storeName" placeholder="Or enter store name manually..." />
+          <input type="text" id="totalOrders" placeholder="Orders this week..." />
+          <input type="text" id="totalRevenue" placeholder="Revenue ($)..." />
+          <input type="text" id="topProduct" placeholder="Top product..." />
+          <button onclick="generateReport(this)">Generate Report →</button>
+        </div>
+
+        <!-- Connected state -->
+        <div id="reportConnected" style="display:none;">
+          <div class="connect-status"><div class="connect-status-dot"></div> <span id="connectedShopName">Store connected</span></div>
+          <br>
+          <button onclick="generateShopifyReport(this)" style="margin-bottom:8px;">📊 Generate My Store Report →</button>
+          <button onclick="disconnectStore()" style="background:rgba(255,255,255,0.05);border:1px solid var(--border);font-size:12px;padding:8px;">Disconnect store</button>
+        </div>
+
         <div class="result" id="reportResult"></div>
       </div>
     </div>
@@ -453,6 +497,68 @@
   </footer>
 
   <script>
+    // Check session on page load
+    async function checkSession() {
+      try {
+        const res = await fetch('/session-status');
+        const data = await res.json();
+        if (data.connected) {
+          showConnectedState(data.shop);
+        }
+        // Show connected=true toast if just redirected from OAuth
+        if (window.location.search.includes('connected=true')) {
+          showConnectedState(data.shop);
+          window.history.replaceState({}, '', '/');
+        }
+      } catch(e) {}
+    }
+
+    function showConnectedState(shop) {
+      document.getElementById('reportNotConnected').style.display = 'none';
+      document.getElementById('reportConnected').style.display = 'block';
+      document.getElementById('connectedShopName').textContent = shop || 'Store connected';
+      const heroBtn = document.getElementById('heroConnectBtn');
+      if (heroBtn) { heroBtn.textContent = '✅ Store Connected'; heroBtn.onclick = () => document.getElementById('demo').scrollIntoView({behavior:'smooth'}); }
+    }
+
+    function connectStore() {
+      const shop = prompt('Enter your Shopify store URL:\n(e.g. my-store.myshopify.com)');
+      if (shop) {
+        const clean = shop.trim().replace('https://','').replace('http://','');
+        window.location.href = `/auth?shop=${clean}`;
+      }
+    }
+
+    async function disconnectStore() {
+      await fetch('/disconnect');
+      document.getElementById('reportNotConnected').style.display = 'block';
+      document.getElementById('reportConnected').style.display = 'none';
+      const heroBtn = document.getElementById('heroConnectBtn');
+      if (heroBtn) { heroBtn.textContent = '🛍️ Connect Your Store'; heroBtn.onclick = connectStore; }
+    }
+
+    async function generateShopifyReport(btn) {
+      btn.textContent = 'Generating...'; btn.disabled = true;
+      try {
+        const res = await fetch('/shopify-report');
+        const data = await res.json();
+        if (data.success && data.reportData) {
+          sessionStorage.setItem('shopPilotReport', JSON.stringify({ reportData: data.reportData, meta: data.meta }));
+          window.location.href = '/report-result.html';
+        } else {
+          const el = document.getElementById('reportResult');
+          el.textContent = data.error || 'Something went wrong.';
+          el.classList.add('show');
+        }
+      } catch(e) {
+        const el = document.getElementById('reportResult');
+        el.textContent = 'Network error. Please try again.';
+        el.classList.add('show');
+      } finally { btn.textContent = '📊 Generate My Store Report →'; btn.disabled = false; }
+    }
+
+    checkSession();
+
     async function sendChat(btn) {
       const message = document.getElementById('chatMessage').value;
       if (!message) return;
