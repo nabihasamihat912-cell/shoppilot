@@ -88,15 +88,68 @@ app.post('/weekly-report', async (req, res) => {
   const { storeName, totalOrders, totalRevenue, topProduct } = req.body;
   if (!storeName) return res.status(400).json({ error: 'Missing storeName' });
 
-  const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    messages: [
-      { role: 'system', content: 'You are an ecommerce analyst. Write a concise weekly performance report with insights and recommendations.' },
-      { role: 'user', content: `Write a weekly report for ${storeName}. Orders: ${totalOrders || 0}, Revenue: $${totalRevenue || 0}, Top product: ${topProduct || 'unknown'}` }
-    ]
-  });
+  const orders = parseInt(totalOrders) || 0;
+  const revenue = parseFloat(totalRevenue) || 0;
+  const avgOrderValue = orders > 0 ? (revenue / orders).toFixed(2) : 0;
 
-  res.json({ report: response.choices[0].message.content });
+  const systemPrompt = `You are ShopPilot, an expert ecommerce analyst AI. You produce weekly store performance reports.
+
+CRITICAL RULES — follow every single one:
+1. NEVER use placeholder text like [insert value], [X%], [number], (specific value), or any bracketed/parenthetical estimates. If you don't know a value, omit that sentence entirely.
+2. NEVER use markdown symbols like **, *, ##, or --- in your output. Plain text only.
+3. All numbers you reference must come directly from the data provided. Do not invent percentages or metrics.
+4. Be specific, concrete, and actionable. No vague generalities.
+5. Respond ONLY with a valid JSON object — no preamble, no explanation, no markdown fences.
+
+Return this exact JSON structure:
+{
+  "summary": "2-3 sentence plain-text executive summary using only the real numbers provided",
+  "highlights": ["highlight 1", "highlight 2", "highlight 3"],
+  "insights": [
+    { "title": "short title", "body": "2-3 sentence insight using real data" },
+    { "title": "short title", "body": "2-3 sentence insight using real data" },
+    { "title": "short title", "body": "2-3 sentence insight using real data" }
+  ],
+  "recommendations": [
+    { "title": "action title", "body": "specific, concrete recommendation" },
+    { "title": "action title", "body": "specific, concrete recommendation" },
+    { "title": "action title", "body": "specific, concrete recommendation" }
+  ],
+  "nextSteps": [
+    "Concrete action item 1",
+    "Concrete action item 2",
+    "Concrete action item 3",
+    "Concrete action item 4"
+  ]
+}`;
+
+  const userPrompt = `Generate a weekly report for this Shopify store:
+- Store name: ${storeName}
+- Total orders this week: ${orders}
+- Total revenue this week: $${revenue}
+- Average order value: $${avgOrderValue}
+- Top selling product: ${topProduct || 'Not specified'}
+
+Use only these exact numbers. Do not invent any other metrics or percentages.`;
+
+  try {
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.4,
+      response_format: { type: 'json_object' }
+    });
+
+    const raw = response.choices[0].message.content;
+    const reportData = JSON.parse(raw);
+    res.json({ success: true, reportData, meta: { storeName, orders, revenue, avgOrderValue, topProduct } });
+  } catch (err) {
+    console.error('Report generation error:', err);
+    res.status(500).json({ error: 'Failed to generate report', details: err.message });
+  }
 });
 app.use(express.static('src/public'));
 
