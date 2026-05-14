@@ -2,11 +2,14 @@ require('dotenv').config();
 const Groq = require('groq-sdk');
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const { shopifyApi, ApiVersion, Session } = require('@shopify/shopify-api');
 const { nodeAdapter } = require('@shopify/shopify-api/adapters/node');
 
 const app = express();
 app.use(express.json());
+app.use(cookieParser());
+app.set('trust proxy', 1);
 
 const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -36,8 +39,14 @@ app.get('/auth/callback', async (req, res) => {
       rawRequest: req,
       rawResponse: res,
     });
-    console.log('✅ Store connected:', callback.session.shop);
-    res.send(`✅ ShopPilot connected to ${callback.session.shop}! We are live!`);
+    const session = callback.session;
+    console.log('✅ Store connected:', session.shop);
+    // Store the session token in a cookie
+    res.cookie('shopify_session', JSON.stringify({
+      shop: session.shop,
+      accessToken: session.accessToken
+    }), { httpOnly: true, secure: true, sameSite: 'none' });
+    res.redirect('/?connected=true');
   } catch (error) {
     console.error('Auth error:', error);
     res.status(500).send('Authentication failed: ' + error.message);
@@ -56,6 +65,7 @@ app.post('/chat', async (req, res) => {
   });
   res.json({ reply: response.choices[0].message.content });
 });
+
 app.post('/generate-description', async (req, res) => {
   const { productName, details } = req.body;
   if (!productName) return res.status(400).json({ error: 'Missing productName' });
@@ -70,6 +80,7 @@ app.post('/generate-description', async (req, res) => {
 
   res.json({ description: response.choices[0].message.content });
 });
+
 app.post('/generate-caption', async (req, res) => {
   const { productName, platform } = req.body;
   if (!productName) return res.status(400).json({ error: 'Missing productName' });
@@ -84,6 +95,7 @@ app.post('/generate-caption', async (req, res) => {
 
   res.json({ caption: response.choices[0].message.content });
 });
+
 app.post('/weekly-report', async (req, res) => {
   const { storeName, totalOrders, totalRevenue, topProduct } = req.body;
   if (!storeName) return res.status(400).json({ error: 'Missing storeName' });
@@ -159,6 +171,7 @@ Use only these exact numbers. Do not invent any other metrics or percentages.`;
     res.status(500).json({ error: 'Failed to generate report', details: err.message });
   }
 });
+
 app.use(express.static('src/public'));
 
 const PORT = process.env.PORT || 3000;
