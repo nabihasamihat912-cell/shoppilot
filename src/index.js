@@ -3,13 +3,16 @@ const Groq = require('groq-sdk');
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 const express = require('express');
 const cookieParser = require('cookie-parser');
-const { shopifyApi, ApiVersion, Session } = require('@shopify/shopify-api');
+const { shopifyApi, ApiVersion } = require('@shopify/shopify-api');
 const { nodeAdapter } = require('@shopify/shopify-api/adapters/node');
 
 const app = express();
 app.use(express.json());
 app.use(cookieParser());
 app.set('trust proxy', 1);
+
+// In-memory session store
+const sessions = {};
 
 const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -40,16 +43,141 @@ app.get('/auth/callback', async (req, res) => {
       rawResponse: res,
     });
     const session = callback.session;
+    sessions[session.shop] = session;
     console.log('✅ Store connected:', session.shop);
-    // Store the session token in a cookie
-    res.cookie('shopify_session', JSON.stringify({
-      shop: session.shop,
-      accessToken: session.accessToken
-    }), { httpOnly: true, secure: true, sameSite: 'none' });
+    res.cookie('shop', session.shop, { httpOnly: false, secure: true, sameSite: 'none' });
     res.redirect('/?connected=true');
   } catch (error) {
     console.error('Auth error:', error);
     res.status(500).send('Authentication failed: ' + error.message);
+  }
+});
+
+app.get('/shopify-report', async (req, res) => {
+  const shop = req.cookies.shop || req.query.shop;
+  if (!shop) return res.status(400).json({ error: 'No shop connected. Please connect your Shopify store first.' });
+
+  const session = sessions[shop];
+  if (!session) return res.status(401).json({ error: 'Session expired. Please reconnect your store.' });
+
+  try {
+    const client = new shopify.clients.Rest({ session });
+
+    // Get orders from last 7 days
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+    const ordersResponse = await client.get({
+      path: 'orders',
+      query: {
+        status: 'any',
+        created_at_min: oneWeekAgo.toISOString(),
+        limit: 250,
+        fields: 'id,total_price,line_items,created_at,financial_status'
+      }
+    });
+
+    const orders = ordersResponse.body.orders || [];
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.total_price || 0), 0);
+    const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0;
+
+    // Find top selling product
+    const productSales = {};
+    orders.forEach(order => {
+      (order.line_items || []).forEach(item => {
+        productSales[item.title] = (productSales[item.title] || 0) + item.quantity;
+      });
+    });
+    const topProduct = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0];
+    const topProductName = topProduct ? topProduct[0] : 'No products sold this week';
+
+    // Get total products count
+    const productsResponse = await client.get({ path: 'products/count' });
+    const totalProducts = productsResponse.body.count || 0;
+
+    // Get customers count
+    const customersResponse = await client.get({ path: 'customers/count' });
+    const totalCustomers = customersResponse.body.count || 0;
+
+    const storeName = shop.replace('.myshopify.com', '');
+
+    const systemPrompt = `You are ShopPilot, an expert ecommerce analyst AI. You produce weekly store performance reports.
+
+CRITICAL RULES:
+1. NEVER use placeholder text like [insert value], [X%], or any bracketed estimates.
+2. NEVER use markdown symbols like **, *, ##, or ---.
+3. Only reference numbers from the data provided. Do not invent metrics.
+4. Be specific, concrete, and actionable.
+5. Respond ONLY with a valid JSON object — no preamble, no markdown fences.
+
+Return this exact JSON structure:
+{
+  "summary": "2-3 sentence executive summary using the real numbers",
+  "highlights": ["highlight 1", "highlight 2", "highlight 3"],
+  "insights": [
+    { "title": "short title", "body": "2-3 sentence insight" },
+    { "title": "short title", "body": "2-3 sentence insight" },
+    { "title": "short title", "body": "2-3 sentence insight" }
+  ],
+  "recommendations": [
+    { "title": "action title", "body": "specific recommendation" },
+    { "title": "action title", "body": "specific recommendation" },
+    { "title": "action title", "body": "specific recommendation" }
+  ],
+  "nextSteps": [
+    "Concrete action item 1",
+    "Concrete action item 2",
+    "Concrete action item 3",
+    "Concrete action item 4"
+  ]
+}`;
+
+    const userPrompt = `Generate a weekly report for this Shopify store:
+- Store: ${storeName}
+- Orders this week: ${totalOrders}
+- Revenue this week: $${totalRevenue.toFixed(2)}
+- Average order value: $${avgOrderValue}
+- Top selling product: ${topProductName}
+- Total products in store: ${totalProducts}
+- Total customers: ${totalCustomers}
+
+Use only these exact numbers.`;
+
+    const response = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt }
+      ],
+      temperature: 0.4
+    });
+
+    const raw = response.choices[0].message.content;
+    let reportData;
+    try {
+      reportData = JSON.parse(raw);
+    } catch (e) {
+      return res.status(500).json({ error: 'Failed to parse report', raw });
+    }
+
+    res.json({
+      success: true,
+      reportData,
+      meta: {
+        storeName,
+        orders: totalOrders,
+        revenue: totalRevenue.toFixed(2),
+        avgOrderValue,
+        topProduct: topProductName,
+        totalProducts,
+        totalCustomers
+      }
+    });
+
+  } catch (err) {
+    console.error('Shopify report error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch store data', details: err.message });
   }
 });
 
@@ -69,7 +197,6 @@ app.post('/chat', async (req, res) => {
 app.post('/generate-description', async (req, res) => {
   const { productName, details } = req.body;
   if (!productName) return res.status(400).json({ error: 'Missing productName' });
-
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [
@@ -77,14 +204,12 @@ app.post('/generate-description', async (req, res) => {
       { role: 'user', content: `Write a product description for: ${productName}. Details: ${details || 'none provided'}` }
     ]
   });
-
   res.json({ description: response.choices[0].message.content });
 });
 
 app.post('/generate-caption', async (req, res) => {
   const { productName, platform } = req.body;
   if (!productName) return res.status(400).json({ error: 'Missing productName' });
-
   const response = await groq.chat.completions.create({
     model: 'llama-3.3-70b-versatile',
     messages: [
@@ -92,7 +217,6 @@ app.post('/generate-caption', async (req, res) => {
       { role: 'user', content: `Write a social media caption for this product: ${productName}` }
     ]
   });
-
   res.json({ caption: response.choices[0].message.content });
 });
 
@@ -104,70 +228,48 @@ app.post('/weekly-report', async (req, res) => {
   const revenue = parseFloat(totalRevenue) || 0;
   const avgOrderValue = orders > 0 ? (revenue / orders).toFixed(2) : 0;
 
-  const systemPrompt = `You are ShopPilot, an expert ecommerce analyst AI. You produce weekly store performance reports.
+  const systemPrompt = `You are ShopPilot, an expert ecommerce analyst AI.
 
-CRITICAL RULES — follow every single one:
-1. NEVER use placeholder text like [insert value], [X%], [number], (specific value), or any bracketed/parenthetical estimates. If you don't know a value, omit that sentence entirely.
-2. NEVER use markdown symbols like **, *, ##, or --- in your output. Plain text only.
-3. All numbers you reference must come directly from the data provided. Do not invent percentages or metrics.
-4. Be specific, concrete, and actionable. No vague generalities.
-5. Respond ONLY with a valid JSON object — no preamble, no explanation, no markdown fences.
+CRITICAL RULES:
+1. NEVER use placeholder text like [insert value], [X%], or bracketed estimates.
+2. NEVER use markdown symbols like **, *, ##, or ---.
+3. Only use numbers from the data provided.
+4. Respond ONLY with a valid JSON object.
 
-Return this exact JSON structure:
+Return this exact JSON:
 {
-  "summary": "2-3 sentence plain-text executive summary using only the real numbers provided",
+  "summary": "2-3 sentence summary",
   "highlights": ["highlight 1", "highlight 2", "highlight 3"],
   "insights": [
-    { "title": "short title", "body": "2-3 sentence insight using real data" },
-    { "title": "short title", "body": "2-3 sentence insight using real data" },
-    { "title": "short title", "body": "2-3 sentence insight using real data" }
+    { "title": "title", "body": "insight" },
+    { "title": "title", "body": "insight" },
+    { "title": "title", "body": "insight" }
   ],
   "recommendations": [
-    { "title": "action title", "body": "specific, concrete recommendation" },
-    { "title": "action title", "body": "specific, concrete recommendation" },
-    { "title": "action title", "body": "specific, concrete recommendation" }
+    { "title": "title", "body": "recommendation" },
+    { "title": "title", "body": "recommendation" },
+    { "title": "title", "body": "recommendation" }
   ],
-  "nextSteps": [
-    "Concrete action item 1",
-    "Concrete action item 2",
-    "Concrete action item 3",
-    "Concrete action item 4"
-  ]
+  "nextSteps": ["step 1", "step 2", "step 3", "step 4"]
 }`;
-
-  const userPrompt = `Generate a weekly report for this Shopify store:
-- Store name: ${storeName}
-- Total orders this week: ${orders}
-- Total revenue this week: $${revenue}
-- Average order value: $${avgOrderValue}
-- Top selling product: ${topProduct || 'Not specified'}
-
-Use only these exact numbers. Do not invent any other metrics or percentages.`;
 
   try {
     const response = await groq.chat.completions.create({
       model: 'llama-3.3-70b-versatile',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: `Store: ${storeName}, Orders: ${orders}, Revenue: $${revenue}, Avg order: $${avgOrderValue}, Top product: ${topProduct || 'Not specified'}` }
       ],
       temperature: 0.4
     });
 
     const raw = response.choices[0].message.content;
-    console.log('Groq raw response:', raw);
-
     let reportData;
-    try {
-      reportData = JSON.parse(raw);
-    } catch (parseErr) {
-      console.error('JSON parse error:', parseErr.message);
-      return res.status(500).json({ error: 'Failed to parse report', raw });
-    }
+    try { reportData = JSON.parse(raw); }
+    catch (e) { return res.status(500).json({ error: 'Failed to parse report', raw }); }
 
     res.json({ success: true, reportData, meta: { storeName, orders, revenue, avgOrderValue, topProduct } });
   } catch (err) {
-    console.error('Report generation error:', err.message);
     res.status(500).json({ error: 'Failed to generate report', details: err.message });
   }
 });
