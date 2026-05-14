@@ -463,29 +463,7 @@
         showResult('chatResult', data.reply);
       } finally { btn.textContent = 'Ask AI →'; btn.disabled = false; }
     }
-    async function generateDescription(btn) {
-      const productName = document.getElementById('productName').value;
-      const details = document.getElementById('productDetails').value;
-      if (!productName) return;
-      btn.textContent = 'Generating...'; btn.disabled = true;
-      try {
-        const res = await fetch('/generate-description', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, details }) });
-        const data = await res.json();
-        showResult('descResult', data.description);
-      } finally { btn.textContent = 'Generate Copy →'; btn.disabled = false; }
-    }
-    async function generateCaption(btn) {
-      const productName = document.getElementById('captionProduct').value;
-      const platform = document.getElementById('captionPlatform').value;
-      if (!productName) return;
-      btn.textContent = 'Generating...'; btn.disabled = true;
-      try {
-        const res = await fetch('/generate-caption', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, platform }) });
-        const data = await res.json();
-        showResult('captionResult', data.caption);
-      } finally { btn.textContent = 'Generate Caption →'; btn.disabled = false; }
-    }
-    async function generateReport(btn) {
+ async function generateReport(btn) {
       const storeName = document.getElementById('storeName').value;
       const totalOrders = document.getElementById('totalOrders').value;
       const totalRevenue = document.getElementById('totalRevenue').value;
@@ -493,10 +471,29 @@
       if (!storeName) return;
       btn.textContent = 'Generating...'; btn.disabled = true;
       try {
-        const res = await fetch('/weekly-report', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ storeName, totalOrders, totalRevenue, topProduct }) });
+        const res = await fetch('/weekly-report', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ storeName, totalOrders, totalRevenue, topProduct })
+        });
         const data = await res.json();
-        showResult('reportResult', data.report);
-      } finally { btn.textContent = 'Generate Report →'; btn.disabled = false; }
+        if (data.success && data.reportData) {
+          sessionStorage.setItem('shopPilotReport', JSON.stringify({ reportData: data.reportData, meta: data.meta }));
+          window.location.href = '/report-result.html';
+        } else {
+          const el = document.getElementById('reportResult');
+          el.textContent = 'Something went wrong. Please try again.';
+          el.classList.add('show');
+        }
+      } catch (e) {
+        const el = document.getElementById('reportResult');
+        el.textContent = 'Network error. Please try again.';
+        el.classList.add('show');
+      } finally {
+        btn.textContent = 'Generate Report →'; btn.disabled = false;
+      }
+   
+      
     }
     function showResult(id, text) {
       const el = document.getElementById(id);
