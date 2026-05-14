@@ -8,11 +8,8 @@ const { nodeAdapter } = require('@shopify/shopify-api/adapters/node');
 
 const app = express();
 app.use(express.json());
-app.use(cookieParser());
+app.use(cookieParser(process.env.COOKIE_SECRET || 'shoppilot-secret-key'));
 app.set('trust proxy', 1);
-
-// In-memory session store
-const sessions = {};
 
 const shopify = shopifyApi({
   apiKey: process.env.SHOPIFY_API_KEY,
@@ -43,9 +40,14 @@ app.get('/auth/callback', async (req, res) => {
       rawResponse: res,
     });
     const session = callback.session;
-    sessions[session.shop] = session;
     console.log('✅ Store connected:', session.shop);
-    res.cookie('shop', session.shop, { httpOnly: false, secure: true, sameSite: 'none' });
+
+    // Persist session data in signed cookies — survives Render redeploys
+    const cookieOpts = { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 }; // 30 days
+    res.cookie('sp_shop', session.shop, { ...cookieOpts, httpOnly: false }); // readable by JS for UI
+    res.cookie('sp_token', session.accessToken, { ...cookieOpts, signed: true }); // signed, httpOnly
+    res.cookie('sp_scope', session.scope || '', { ...cookieOpts, signed: true });
+
     res.redirect('/?connected=true');
   } catch (error) {
     console.error('Auth error:', error);
@@ -54,11 +56,23 @@ app.get('/auth/callback', async (req, res) => {
 });
 
 app.get('/shopify-report', async (req, res) => {
-  const shop = req.cookies.shop || req.query.shop;
+  const shop = req.cookies.sp_shop || req.query.shop;
   if (!shop) return res.status(400).json({ error: 'No shop connected. Please connect your Shopify store first.' });
 
-  const session = sessions[shop];
-  if (!session) return res.status(401).json({ error: 'Session expired. Please reconnect your store.' });
+  // Reconstruct session from signed cookie — works across Render redeploys
+  const accessToken = req.signedCookies.sp_token;
+  if (!accessToken) return res.status(401).json({ error: 'Session expired. Please reconnect your store.' });
+
+  // Build a minimal session object the Shopify client needs
+  const session = {
+    shop,
+    accessToken,
+    scope: req.signedCookies.sp_scope || '',
+    isOnline: false,
+    id: `offline_${shop}`,
+    state: '',
+    isActive: () => true,
+  };
 
   try {
     const client = new shopify.clients.Rest({ session });
@@ -179,6 +193,25 @@ Use only these exact numbers.`;
     console.error('Shopify report error:', err.message);
     res.status(500).json({ error: 'Failed to fetch store data', details: err.message });
   }
+});
+
+// Check if a store is connected (used by frontend on page load)
+app.get('/session-status', (req, res) => {
+  const shop = req.cookies.sp_shop;
+  const hasToken = !!req.signedCookies.sp_token;
+  if (shop && hasToken) {
+    res.json({ connected: true, shop });
+  } else {
+    res.json({ connected: false });
+  }
+});
+
+// Disconnect store — clear cookies
+app.get('/disconnect', (req, res) => {
+  res.clearCookie('sp_shop');
+  res.clearCookie('sp_token');
+  res.clearCookie('sp_scope');
+  res.json({ success: true, message: 'Store disconnected' });
 });
 
 app.post('/chat', async (req, res) => {
