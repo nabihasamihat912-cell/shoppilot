@@ -19,6 +19,10 @@ const shopify = shopifyApi({
   apiVersion: ApiVersion.July25,
   isEmbeddedApp: false,
   adapter: nodeAdapter,
+  cookieOptions: {
+    sameSite: 'none',
+    secure: true,
+  },
 });
 
 app.get('/auth', async (req, res) => {
