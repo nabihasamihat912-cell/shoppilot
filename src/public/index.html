@@ -559,6 +559,34 @@
 
     checkSession();
 
+    async function generateDescription(btn) {
+      const productName = document.getElementById('productName').value;
+      const details = document.getElementById('productDetails').value;
+      if (!productName) return;
+      btn.textContent = 'Generating...'; btn.disabled = true;
+      try {
+        const res = await fetch('/generate-description', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, details }) });
+        const data = await res.json();
+        showResult('descResult', data.description);
+      } catch(e) {
+        showResult('descResult', 'Network error. Please try again.');
+      } finally { btn.textContent = 'Generate Copy →'; btn.disabled = false; }
+    }
+
+    async function generateCaption(btn) {
+      const productName = document.getElementById('captionProduct').value;
+      const platform = document.getElementById('captionPlatform').value;
+      if (!productName) return;
+      btn.textContent = 'Generating...'; btn.disabled = true;
+      try {
+        const res = await fetch('/generate-caption', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ productName, platform }) });
+        const data = await res.json();
+        showResult('captionResult', data.caption);
+      } catch(e) {
+        showResult('captionResult', 'Network error. Please try again.');
+      } finally { btn.textContent = 'Generate Caption →'; btn.disabled = false; }
+    }
+
     async function sendChat(btn) {
       const message = document.getElementById('chatMessage').value;
       if (!message) return;
