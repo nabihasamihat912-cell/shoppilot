@@ -5,6 +5,12 @@ const express = require('express');
 const cookieParser = require('cookie-parser');
 const { shopifyApi, ApiVersion } = require('@shopify/shopify-api');
 const { nodeAdapter } = require('@shopify/shopify-api/adapters/node');
+const { createClient } = require('redis');
+
+// Redis client
+const redis = createClient({ url: process.env.REDIS_URL || 'redis://localhost:6379' });
+redis.on('error', err => console.error('Redis error:', err));
+redis.connect().then(() => console.log('✅ Redis connected'));
 
 const app = express();
 app.use(express.json());
@@ -46,11 +52,15 @@ app.get('/auth/callback', async (req, res) => {
     const session = callback.session;
     console.log('✅ Store connected:', session.shop);
 
-    // Persist session data in signed cookies — survives Render redeploys
-    const cookieOpts = { httpOnly: true, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 }; // 30 days
-    res.cookie('sp_shop', session.shop, { ...cookieOpts, httpOnly: false }); // readable by JS for UI
-    res.cookie('sp_token', session.accessToken, { ...cookieOpts, signed: true }); // signed, httpOnly
-    res.cookie('sp_scope', session.scope || '', { ...cookieOpts, signed: true });
+    // Save session to Redis — keyed by shop, lasts 30 days
+    await redis.set(`session:${session.shop}`, JSON.stringify({
+      shop: session.shop,
+      accessToken: session.accessToken,
+      scope: session.scope || ''
+    }), { EX: 30 * 24 * 60 * 60 });
+
+    // Store shop name in cookie so we know which Redis key to look up
+    res.cookie('sp_shop', session.shop, { httpOnly: false, secure: true, sameSite: 'none', maxAge: 30 * 24 * 60 * 60 * 1000 });
 
     res.redirect('/?connected=true');
   } catch (error) {
@@ -63,15 +73,16 @@ app.get('/shopify-report', async (req, res) => {
   const shop = req.cookies.sp_shop || req.query.shop;
   if (!shop) return res.status(400).json({ error: 'No shop connected. Please connect your Shopify store first.' });
 
-  // Reconstruct session from signed cookie — works across Render redeploys
-  const accessToken = req.signedCookies.sp_token;
-  if (!accessToken) return res.status(401).json({ error: 'Session expired. Please reconnect your store.' });
+  // Look up session from Redis
+  const sessionData = await redis.get(`session:${shop}`);
+  if (!sessionData) return res.status(401).json({ error: 'Session expired. Please reconnect your store.' });
 
-  // Build a minimal session object the Shopify client needs
+  const { accessToken, scope } = JSON.parse(sessionData);
+
   const session = {
     shop,
     accessToken,
-    scope: req.signedCookies.sp_scope || '',
+    scope: scope || '',
     isOnline: false,
     id: `offline_${shop}`,
     state: '',
@@ -175,21 +186,22 @@ Use only these exact numbers.`;
 });
 
 // Check if a store is connected (used by frontend on page load)
-app.get('/session-status', (req, res) => {
+app.get('/session-status', async (req, res) => {
   const shop = req.cookies.sp_shop;
-  const hasToken = !!req.signedCookies.sp_token;
-  if (shop && hasToken) {
+  if (!shop) return res.json({ connected: false });
+  const sessionData = await redis.get(`session:${shop}`);
+  if (sessionData) {
     res.json({ connected: true, shop });
   } else {
     res.json({ connected: false });
   }
 });
 
-// Disconnect store — clear cookies
-app.get('/disconnect', (req, res) => {
+// Disconnect store — clear cookie and Redis
+app.get('/disconnect', async (req, res) => {
+  const shop = req.cookies.sp_shop;
+  if (shop) await redis.del(`session:${shop}`);
   res.clearCookie('sp_shop');
-  res.clearCookie('sp_token');
-  res.clearCookie('sp_scope');
   res.json({ success: true, message: 'Store disconnected' });
 });
 
