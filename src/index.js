@@ -92,13 +92,36 @@ app.get('/shopify-report', async (req, res) => {
   try {
     const client = new shopify.clients.Rest({ session });
 
-    // Orders require protected data approval — skip for now
-    const totalOrders = 0;
-    const totalRevenue = 0;
-    const avgOrderValue = 0;
-    const topProductName = 'N/A';
+    // Get orders from last 7 days
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
-    // Get total products count (read_products is safe)
+    const ordersResponse = await client.get({
+      path: 'orders',
+      query: {
+        status: 'any',
+        created_at_min: oneWeekAgo.toISOString(),
+        limit: 250,
+        fields: 'id,total_price,line_items,created_at,financial_status'
+      }
+    });
+
+    const orders = ordersResponse.body.orders || [];
+    const totalOrders = orders.length;
+    const totalRevenue = orders.reduce((sum, o) => sum + parseFloat(o.total_price || 0), 0);
+    const avgOrderValue = totalOrders > 0 ? (totalRevenue / totalOrders).toFixed(2) : 0;
+
+    // Find top selling product
+    const productSales = {};
+    orders.forEach(order => {
+      (order.line_items || []).forEach(item => {
+        productSales[item.title] = (productSales[item.title] || 0) + item.quantity;
+      });
+    });
+    const topProduct = Object.entries(productSales).sort((a, b) => b[1] - a[1])[0];
+    const topProductName = topProduct ? topProduct[0] : 'No products sold this week';
+
+    // Get total products count
     const productsResponse = await client.get({ path: 'products/count' });
     const totalProducts = productsResponse.body.count || 0;
 
